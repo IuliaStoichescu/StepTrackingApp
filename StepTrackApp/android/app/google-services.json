@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "862754980480",
+    "project_id": "authflutter-3d32f",
+    "storage_bucket": "authflutter-3d32f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:862754980480:android:96f0edbe38c00ab887dc65",
+        "android_client_info": {
+          "package_name": "com.example.step_track_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAx7b161N1oxTH3TgfRDG3Zne4h2bcSxYw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
