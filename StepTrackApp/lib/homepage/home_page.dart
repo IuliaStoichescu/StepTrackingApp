@@ -1,207 +1,269 @@
-import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:health/health.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
-import 'package:sensors_plus/sensors_plus.dart'; // Import the sensors package for accelerometer
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:provider/provider.dart';
+import '../session/session_manager.dart';
+import 'main_page.dart';
+import 'track_page.dart';
 
 class HomePage extends StatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
+
   @override
-  _HomePageState createState() => _HomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  // Variables for accelerometer data
-  double _accelerometerX = 0.0;
-  double _accelerometerY = 0.0;
-  double _accelerometerZ = 0.0;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final TextEditingController _stepGoalController = TextEditingController();
 
-  String username = "User"; // Default username
-  bool isLoading = true;
-
-  // Variables for step counting
-  int _steps = 0;
-  double _lastY = 0.0;
-  double _threshold = 15.0; // Sensitivity threshold for detecting steps
-  int _stepTarget = 10000; // Default target (10,000 steps)
+  String _username = "Loading...";
+  int _stepGoal = 5000; // Default step goal
+  int _currentSteps = 0; // Steps recorded during the session
+  double _progress = 0.0;
 
   @override
   void initState() {
     super.initState();
-    fetchUsername(); // Fetch username when MainPage loads
-
-    // Listen to accelerometer events for detecting steps
-    accelerometerEvents.listen((AccelerometerEvent event) {
-      _processAccelerometerData(event);
-      setState(() {
-        _accelerometerX = event.x;
-        _accelerometerY = event.y;
-        _accelerometerZ = event.z;
-      });
-    });
+    _fetchUsername();
+    _stepGoalController.text = _stepGoal.toString(); // Initialize text field
   }
 
-  // Fetch the username from Firestore
-  Future<void> fetchUsername() async {
+  Future<void> _fetchUsername() async {
     try {
-      User? user = FirebaseAuth.instance.currentUser; // Get logged-in user
+      final user = _auth.currentUser;
       if (user != null) {
-        String uid = user.uid;
-
-        // Fetch user's document from Firestore
-        DocumentSnapshot userDoc =
-        await FirebaseFirestore.instance.collection('users').doc(uid).get();
-
-        if (userDoc.exists) {
+        final doc = await _firestore.collection('user_info').doc(user.uid).get();
+        if (doc.exists && doc.data() != null) {
           setState(() {
-            username = userDoc['username'] ?? "User"; // Update username
-            isLoading = false; // Stop loading
+            _username = doc.data()!['username'] ?? "User";
+          });
+        } else {
+          setState(() {
+            _username = "No username found";
           });
         }
+      } else {
+        setState(() {
+          _username = "User not logged in";
+        });
       }
     } catch (e) {
-      print("Error fetching username: $e");
       setState(() {
-        isLoading = false; // Stop loading even on error
+        _username = "Error fetching username";
       });
     }
   }
 
-  // Method to process accelerometer data and detect steps
-  void _processAccelerometerData(AccelerometerEvent event) {
-    double y = event.y;
-
-    // Check for significant movement on the Y-axis to detect a step
-    if (y - _lastY > _threshold) {
-      setState(() {
-        _steps++; // Increment step count
-      });
+  void _updateStepGoal() {
+    try {
+      final int newGoal = int.parse(_stepGoalController.text);
+      if (newGoal > 0) {
+        setState(() {
+          _stepGoal = newGoal;
+        });
+      } else {
+        _showError("Please enter a positive number for the step goal.");
+      }
+    } catch (e) {
+      _showError("Invalid input. Please enter a valid number.");
     }
-
-    // Update the last Y value for the next comparison
-    _lastY = y;
   }
 
-  // Method to show a dialog for setting step target
-  void _setStepTarget() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        int tempTarget = _stepTarget; // Temporary variable to hold the input
-
-        return AlertDialog(
-          title: Text('Set Step Target'),
-          content: TextField(
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: 'Enter Step Target',
-              hintText: 'e.g., 10000',
-            ),
-            onChanged: (value) {
-              tempTarget = int.tryParse(value) ?? 0;
-            },
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _stepTarget = tempTarget;
-                });
-                Navigator.of(context).pop();
-              },
-              child: Text('Set Target'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
-            ),
-          ],
-        );
-      },
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 
-  @override
-  void dispose() {
-    super.dispose();
+  void _startSession() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MainPage(initialTab: 1),
+      ),
+    );
+
+    if (result != null && result is int) {
+      setState(() {
+        _currentSteps = result;
+        _progress = (_currentSteps / _stepGoal).clamp(0.0, 1.0);
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    double progress = (_steps / _stepTarget); // Calculate progress based on steps and target
-
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.teal,
-          elevation: 8,
-          automaticallyImplyLeading: false,
-          title: Row(
-            children: [
-              Icon(Icons.person, color: Colors.white), // Profile Icon
-              SizedBox(width: 8),
-              isLoading
-                  ? CircularProgressIndicator(color: Colors.white) // Loading Spinner
-                  : Text(
-                "Hi $username",
-                style: TextStyle(color: Colors.white),
-              ),
-            ],
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.person, color: Colors.white), // Replace with your desired icon
+          onPressed: () {
+            // Add functionality for the icon if needed
+            print("Icon tapped");
+          },
         ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              // Display the step count
-              Text('Steps: $_steps', style: TextStyle(fontSize: 30)),
-              SizedBox(height: 20),
+        title: Text(
+          "Hi, $_username!",
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.lightBlueAccent,
+        elevation: 1,
+      ),
 
-              // Circular Progress Bar
-              CircularProgressIndicator(
-                value: progress > 1.0 ? 1.0 : progress, // Prevent progress exceeding 100%
-                strokeWidth: 10,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-              ),
-              SizedBox(height: 20),
-
-              // Display progress percentage
-              Text(
-                'Progress: ${(progress * 100).toStringAsFixed(1)}%',
-                style: TextStyle(fontSize: 20),
-              ),
-              SizedBox(height: 20),
-
-              // Button to set step target
-              ElevatedButton(
-                onPressed: _setStepTarget,
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.lightBlue
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Progress Indicator Section
+            Column(
+              children: [
+                Stack(
+                  alignment: Alignment.center, // Center the SVG in the CircularProgressIndicator
+                  children: [
+                    SizedBox(
+                      width: 200, // Adjust the size of the circle
+                      height: 200, // Adjust the size of the circle
+                      child: CircularProgressIndicator(
+                        value: _progress,
+                        strokeWidth: 10.0, // Thicker stroke
+                        backgroundColor: Colors.grey[300],
+                        valueColor: const AlwaysStoppedAnimation(Colors.green),
+                        semanticsLabel: 'Step Progress',
+                        semanticsValue: "${(_progress * 100).toStringAsFixed(1)}%",
+                      ),
+                    ),
+                    // Add the SVG inside the circle
+                    SvgPicture.asset(
+                      'assets/svg_files/shoe-prints-solid.svg',
+                      width: 50,
+                      height: 50,
+                    ),
+                  ],
                 ),
-                child: Text('Set Step Target',style: TextStyle(color: Colors.white),),
-              ),
-              SizedBox(height: 20),
 
-              // Display the accelerometer data (X, Y, Z values)
-              Text('Accelerometer Data:', style: TextStyle(fontSize: 20)),
-              Text('X: $_accelerometerX', style: TextStyle(fontSize: 18)),
-              Text('Y: $_accelerometerY', style: TextStyle(fontSize: 18)),
-              Text('Z: $_accelerometerZ', style: TextStyle(fontSize: 18)),
 
-              // Hint for user to move the device
-              SizedBox(height: 20),
-              Text(
-                'Move your device to start counting steps!',
-                style: TextStyle(fontSize: 18),
+
+                const SizedBox(height: 20),
+                Text(
+                  "${_currentSteps.toString()} / ${_stepGoal.toString()} steps",
+                  style: const TextStyle(
+                    fontSize: 24, // Larger font size
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  "${(_progress * 100).toStringAsFixed(1)}% of Goal",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 90),
+
+            // Set Your Step Goal Section
+            Column(
+              children: [
+                Text(
+                  "Set Your Step Goal:",
+                  style: const TextStyle(
+                    fontSize: 22,
+                    //fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _stepGoalController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          hintText: "Enter your step goal",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Colors.green, Colors.teal, Colors.lightBlueAccent],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20), // Rounded corners
+                      ),
+                      child: ElevatedButton(
+                        onPressed: _updateStepGoal,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent, // Makes button background transparent
+                          shadowColor: Colors.transparent, // Removes shadow for better gradient look
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(40), // Match the gradient corners
+                          ),
+                        ),
+                        child: const Text(
+                          "Set Goal",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white, // White text
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 100),
+
+            // Start Session Button
+            ElevatedButton(
+              onPressed: _startSession,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                backgroundColor: Colors.lightBlueAccent,
+                minimumSize: const Size(200, 50), // Adjust width to 200px and height to 50px
               ),
-            ],
-          ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min, // Make the button fit the content size
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.directions_walk, // Replace with your desired icon
+                    color: Colors.white, // Icon color
+                  ),
+                  const SizedBox(width: 8), // Add spacing between the icon and text
+                  const Text(
+                    "Start Session",
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+
 }

@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:step_track_app/homepage/main_page.dart';
 import 'package:step_track_app/logsign/login.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:step_track_app/homepage/track_page.dart';
+import 'package:step_track_app/session/session_manager.dart';
 import 'first_page.dart';
+import 'homepage/home_page.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(const MyApp());
+  runApp(
+      ChangeNotifierProvider(
+        create: (_) => SessionManager(),
+        child: const MyApp(),
+      ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -23,6 +31,8 @@ class MyApp extends StatelessWidget {
         routes: {
           '/login': (context)=>Login(),
           '/mainPage': (context)=>MainPage(),
+          '/trackPage': (context)=>TrackPage(),
+          '/homePage': (context)=>HomePage(),
         },
     );
   }

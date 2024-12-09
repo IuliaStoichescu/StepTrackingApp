@@ -6,17 +6,18 @@ import 'package:step_track_app/homepage/track_page.dart';
 import 'home_page.dart';
 
 class MainPage extends StatefulWidget {
-  const MainPage({super.key});
+  final int initialTab; // Allows selecting the initial tab
+
+  const MainPage({Key? key, this.initialTab = 0}) : super(key: key);
 
   @override
   State<MainPage> createState() => _MainPageState();
 }
 
 class _MainPageState extends State<MainPage> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
 
-
-  final List _pages = [
+  final List<Widget> _pages = [
     HomePage(),
     TrackPage(),
     ReportsPage(),
@@ -25,7 +26,7 @@ class _MainPageState extends State<MainPage> {
   @override
   void initState() {
     super.initState();
-
+    _selectedIndex = widget.initialTab; // Set the initial tab based on the parameter
   }
 
   void _navigateBottomBar(int index) {
@@ -39,7 +40,7 @@ class _MainPageState extends State<MainPage> {
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Colors.green, Colors.teal, Colors.lightBlueAccent],
             begin: Alignment.topLeft,
@@ -56,11 +57,11 @@ class _MainPageState extends State<MainPage> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           type: BottomNavigationBarType.fixed,
-          selectedItemColor: Colors.white, // Active item color
-          unselectedItemColor: Colors.white.withOpacity(0.7), // Inactive item color
+          selectedItemColor: Colors.white,
+          unselectedItemColor: Colors.white.withOpacity(0.7),
           showSelectedLabels: true,
           showUnselectedLabels: true,
-          items: [
+          items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_filled),
               label: 'Home',
@@ -79,3 +80,4 @@ class _MainPageState extends State<MainPage> {
     );
   }
 }
+

@@ -30,13 +30,27 @@ class _LoginState extends State<Login> {
     try {
       if (isLoginMode) {
         // Login logic
-        await _auth.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
+        final String email = _emailController.text.trim();
+        final String password = _passwordController.text.trim();
+
+        UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+          email: email,
+          password: password,
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Login Successful")),
-        );
+
+        // Fetch username from Firestore after successful login
+        DocumentSnapshot userDoc = await _firestore.collection('user_info').doc(userCredential.user!.uid).get();
+        if (userDoc.exists) {
+          String username = userDoc['username'] ?? 'Unknown';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Welcome back, $username!")),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("User data not found in Firestore")),
+          );
+        }
+
         Navigator.pushNamed(context, '/mainPage');
       } else {
         // Sign-up logic
@@ -44,26 +58,26 @@ class _LoginState extends State<Login> {
         final String password = _passwordController.text.trim();
         final String username = _usernameController.text.trim();
 
-        // Create user
+        // Create user in Firebase Auth
         UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
           email: email,
           password: password,
         );
 
-        // Save additional user data to Firestore
-        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+        // Save user info in Firestore
+        await _firestore.collection('user_info').doc(userCredential.user!.uid).set({
           'username': username,
           'email': email,
           'createdAt': FieldValue.serverTimestamp(),
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Account Created Successfully")),
+          const SnackBar(content: Text("Account Created Successfully!")),
         );
         Navigator.pushNamed(context, '/mainPage');
       }
     } on FirebaseAuthException catch (e) {
-      // Handle Firebase-specific errors
+      // Firebase-specific errors
       String errorMessage;
       switch (e.code) {
         case 'user-not-found':
@@ -78,13 +92,9 @@ class _LoginState extends State<Login> {
         default:
           errorMessage = "An error occurred. Please try again.";
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       setState(() {
         isLoading = false;
@@ -163,11 +173,11 @@ class _LoginState extends State<Login> {
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black54,
+                          color: Colors.deepPurpleAccent,
                         ),
                       ),
+                      const SizedBox(height: 16),
                       if (!isLoginMode) ...[
-                        const SizedBox(height: 16),
                         TextField(
                           controller: _usernameController,
                           decoration: InputDecoration(
@@ -212,23 +222,36 @@ class _LoginState extends State<Login> {
                           obscureText: true,
                         ),
                       ],
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 40),
                       ElevatedButton(
                         onPressed: isLoading ? null : _authenticate,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black54,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 32),
+                          elevation: 5,
+                          backgroundColor: isLoading ? Colors.grey : Colors.deepPurpleAccent,
                         ),
                         child: isLoading
-                            ? const CircularProgressIndicator(
-                          color: Colors.white,
-                        )
-                            : Text(
-                          isLoginMode ? "Login" : "Sign Up",
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                          ),
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isLoginMode ? Icons.login : Icons.person_add,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              isLoginMode ? "Login" : "Sign Up",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -242,7 +265,7 @@ class _LoginState extends State<Login> {
                           isLoginMode
                               ? "Don't have an account? Sign Up"
                               : "Already have an account? Login",
-                          style: const TextStyle(color: Colors.blue),
+                          style: const TextStyle(color: Colors.deepPurpleAccent),
                         ),
                       ),
                     ],
