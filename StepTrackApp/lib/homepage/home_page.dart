@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
+import 'package:step_track_app/drawer_pages/change_profile.dart';
+import 'package:step_track_app/drawer_pages/get_bmi.dart';
+import 'package:step_track_app/drawer_pages/step_workout_videos.dart';
 import '../session/session_manager.dart';
 import 'main_page.dart';
 import 'track_page.dart';
@@ -99,6 +102,8 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        iconTheme: IconThemeData(color: Colors.white),
+        // Change drawer icon color
         leading: IconButton(
           icon: const Icon(Icons.person, color: Colors.white), // Replace with your desired icon
           onPressed: () {
@@ -112,6 +117,137 @@ class _HomePageState extends State<HomePage> {
         ),
         backgroundColor: Colors.lightBlueAccent,
         elevation: 1,
+      ),
+      endDrawer: Drawer(
+        backgroundColor: Colors.black45,
+        elevation: 2,
+        shadowColor: Colors.white,
+        width: 250,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            SizedBox( // Wrap DrawerHeader in SizedBox for fixed height
+              height: 250, // Adjust the height as needed
+              child: DrawerHeader(
+                decoration: const BoxDecoration(
+                  color: Colors.lightBlueAccent,
+                ),
+                child: FutureBuilder<List<DocumentSnapshot>>(
+                  future: Future.wait([
+                    _firestore.collection("user_info").doc(_auth.currentUser?.uid).get(), // Fetch email
+                    _firestore
+                        .collection("user_info")
+                        .doc(_auth.currentUser?.uid)
+                        .collection("profile")
+                        .doc("details")
+                        .get(), // Fetch profile data
+                  ]),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (snapshot.hasError) {
+                      return const Center(
+                        child: Text(
+                          "Failed to load profile",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      );
+                    }
+
+                    if (!snapshot.hasData ||
+                        !snapshot.data![0].exists ||
+                        !snapshot.data![1].exists) {
+                      return const Center(
+                        child: Text(
+                          "No profile data found",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      );
+                    }
+
+                    // Extract data from both documents
+                    final emailData = snapshot.data![0];
+                    final profileData = snapshot.data![1];
+
+                    final String email = emailData["email"] ?? "No email";
+                    final String username = profileData["username"] ?? "User";
+                    final String imageUrl =
+                        profileData["imageUrl"] ?? "https://via.placeholder.com/150";
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundImage: NetworkImage(imageUrl),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          username,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis, // Prevent overflow
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          email,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                          overflow: TextOverflow.ellipsis, // Prevent overflow
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.accessibility, color: Colors.white),
+              title: const Text("Calculate BMI", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => GetBmi()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.video_collection_rounded, color: Colors.white),
+              title: const Text("Videos", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => StepWorkoutVideos()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.create, color: Colors.white),
+              title: const Text("Profile", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => ChangeProfile()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.analytics, color: Colors.white),
+              title: const Text("Reports", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MainPage(initialTab: 2),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
 
       body: Padding(
@@ -166,7 +302,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            const SizedBox(height: 90),
+            const SizedBox(height: 50),
 
             // Set Your Step Goal Section
             Column(
@@ -228,7 +364,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            const SizedBox(height: 100),
+            const SizedBox(height: 50),
 
             // Start Session Button
             ElevatedButton(

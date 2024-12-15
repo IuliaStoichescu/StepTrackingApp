@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:step_track_app/drawer_pages/get_bmi.dart';
 import 'package:step_track_app/homepage/main_page.dart';
 import 'package:step_track_app/logsign/login.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -7,6 +8,7 @@ import 'package:step_track_app/homepage/track_page.dart';
 import 'package:step_track_app/session/session_manager.dart';
 import 'first_page.dart';
 import 'homepage/home_page.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,6 +35,7 @@ class MyApp extends StatelessWidget {
           '/mainPage': (context)=>MainPage(),
           '/trackPage': (context)=>TrackPage(),
           '/homePage': (context)=>HomePage(),
+          '/getBmi' : (context)=>GetBmi()
         },
     );
   }

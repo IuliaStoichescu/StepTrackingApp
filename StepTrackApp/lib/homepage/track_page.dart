@@ -6,6 +6,7 @@ import 'package:location/location.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:vector_math/vector_math.dart' as math;
 
 class TrackPage extends StatefulWidget {
   const TrackPage({Key? key}) : super(key: key);
@@ -27,7 +28,7 @@ class _TrackPageState extends State<TrackPage> {
   Stopwatch _stopwatch = Stopwatch();
   late StreamSubscription<AccelerometerEvent> _accelerometerSubscription;
   double _lastY = 0.0;
-  double _threshold = 15.0;
+  double _threshold = 10.0;
 
   @override
   void initState() {
@@ -87,15 +88,19 @@ class _TrackPageState extends State<TrackPage> {
   }
 
   void _startAccelerometerListener() {
+    double previousMagnitude = 0.0;
     _accelerometerSubscription = accelerometerEvents.listen((event) {
-      if (event.y - _lastY > _threshold) {
+      final acceleration = math.Vector3(event.x,event.y,event.z);
+      double magnitude = acceleration.length;//sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
+      if (magnitude > _threshold) {
         setState(() {
           _steps++;
         });
       }
-      _lastY = event.y;
+      previousMagnitude = magnitude;
     });
   }
+
 
   double _calculateDistance(LatLng start, LatLng end) {
     const double earthRadius = 6371; // Earth radius in kilometers

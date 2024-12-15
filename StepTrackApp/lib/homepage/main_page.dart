@@ -38,6 +38,7 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+
       body: _pages[_selectedIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
