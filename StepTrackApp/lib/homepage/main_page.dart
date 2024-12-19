@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:step_track_app/homepage/reports_page.dart';
 import 'package:step_track_app/homepage/track_page.dart';
 import 'home_page.dart';
@@ -8,7 +6,7 @@ import 'home_page.dart';
 class MainPage extends StatefulWidget {
   final int initialTab; // Allows selecting the initial tab
 
-  const MainPage({Key? key, this.initialTab = 0}) : super(key: key);
+  const MainPage({super.key, this.initialTab = 0});
 
   @override
   State<MainPage> createState() => _MainPageState();

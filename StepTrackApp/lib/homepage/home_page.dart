@@ -2,16 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:provider/provider.dart';
 import 'package:step_track_app/drawer_pages/change_profile.dart';
 import 'package:step_track_app/drawer_pages/get_bmi.dart';
 import 'package:step_track_app/drawer_pages/step_workout_videos.dart';
-import '../session/session_manager.dart';
 import 'main_page.dart';
-import 'track_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -38,27 +35,40 @@ class _HomePageState extends State<HomePage> {
     try {
       final user = _auth.currentUser;
       if (user != null) {
-        final doc = await _firestore.collection('user_info').doc(user.uid).get();
-        if (doc.exists && doc.data() != null) {
-          setState(() {
-            _username = doc.data()!['username'] ?? "User";
-          });
-        } else {
-          setState(() {
-            _username = "No username found";
-          });
+        // Fetch both 'user_info' and 'profile/details' concurrently
+        final userInfoRef = _firestore.collection('user_info').doc(user.uid);
+        final profileRef =
+        _firestore.collection('user_info').doc(user.uid).collection('profile').doc('details');
+
+        final userInfoSnapshot = await userInfoRef.get();
+        final profileSnapshot = await profileRef.get();
+
+        String fetchedUsername = "User"; // Default fallback
+
+        if (profileSnapshot.exists && profileSnapshot.data()?['username'] != null) {
+          // Use username from 'profile/details' if it exists
+          fetchedUsername = profileSnapshot.data()?['username'];
+        } else if (userInfoSnapshot.exists && userInfoSnapshot.data()?['username'] != null) {
+          // Fallback to 'user_info' username if 'profile/details' is empty
+          fetchedUsername = userInfoSnapshot.data()?['username'];
         }
+
+        setState(() {
+          _username = fetchedUsername;
+        });
       } else {
         setState(() {
           _username = "User not logged in";
         });
       }
     } catch (e) {
+      print("Error fetching username: $e");
       setState(() {
         _username = "Error fetching username";
       });
     }
   }
+
 
   void _updateStepGoal() {
     try {

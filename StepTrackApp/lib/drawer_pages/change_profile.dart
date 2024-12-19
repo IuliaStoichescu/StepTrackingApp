@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:lottie/lottie.dart';
 
 class ChangeProfile extends StatefulWidget {
+  const ChangeProfile({super.key});
+
   @override
   _ChangeProfileState createState() => _ChangeProfileState();
 }

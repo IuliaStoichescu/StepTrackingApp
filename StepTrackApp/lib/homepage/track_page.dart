@@ -9,7 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vector_math/vector_math.dart' as math;
 
 class TrackPage extends StatefulWidget {
-  const TrackPage({Key? key}) : super(key: key);
+  const TrackPage({super.key});
 
   @override
   State<TrackPage> createState() => _TrackPageState();
@@ -17,18 +17,18 @@ class TrackPage extends StatefulWidget {
 
 class _TrackPageState extends State<TrackPage> {
   GoogleMapController? _mapController;
-  Location _location = Location();
-  Set<Polyline> _polylines = {};
-  List<LatLng> _routeCoords = [];
+  final Location _location = Location();
+  final Set<Polyline> _polylines = {};
+  final List<LatLng> _routeCoords = [];
   LatLng? _currentLocation;
 
   int _steps = 0;
   double _totalDistance = 0.0; // in kilometers
   double _caloriesBurned = 0.0;
-  Stopwatch _stopwatch = Stopwatch();
+  final Stopwatch _stopwatch = Stopwatch();
   late StreamSubscription<AccelerometerEvent> _accelerometerSubscription;
-  double _lastY = 0.0;
-  double _threshold = 10.0;
+  final double _lastY = 0.0;
+  final double _threshold = 10.0;
 
   @override
   void initState() {

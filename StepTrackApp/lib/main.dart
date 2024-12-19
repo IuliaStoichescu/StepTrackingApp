@@ -8,7 +8,6 @@ import 'package:step_track_app/homepage/track_page.dart';
 import 'package:step_track_app/session/session_manager.dart';
 import 'first_page.dart';
 import 'homepage/home_page.dart';
-import 'package:firebase_core/firebase_core.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();

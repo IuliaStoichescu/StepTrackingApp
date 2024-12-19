@@ -10,6 +10,10 @@
         android:label="step_track_app"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+            <meta-data
+                android:name="android.graphics.renderer"
+                android:value="opengl" />
+
         <activity
 
             android:name=".MainActivity"
@@ -27,6 +31,7 @@
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
+
               />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -38,6 +43,7 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyAx7b161N1oxTH3TgfRDG3Zne4h2bcSxYw" />

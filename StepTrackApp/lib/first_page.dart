@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:step_track_app/logsign/login.dart';
 
 class FirstPage extends StatelessWidget {
   const FirstPage({super.key});
