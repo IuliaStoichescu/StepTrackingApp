@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lottie/lottie.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ChangeProfile extends StatefulWidget {
   const ChangeProfile({super.key});
@@ -14,17 +15,17 @@ class ChangeProfile extends StatefulWidget {
 }
 
 class _ChangeProfileState extends State<ChangeProfile> {
-  final User? user = FirebaseAuth.instance.currentUser; // Get the current user
+  final User? user = FirebaseAuth.instance.currentUser;
   final _formKey = GlobalKey<FormState>();
 
   // Profile data variables
   String name = "";
-  String sex = ""; // Dropdown value
+  String sex = "";
   String weight = "";
   String height = "";
   String goal = "";
-  File? image; // Local image file
-  String imageUrl = ""; // URL for profile image stored in Firebase
+  File? image;
+  String imageUrl = "";
 
   @override
   void initState() {
@@ -32,8 +33,7 @@ class _ChangeProfileState extends State<ChangeProfile> {
     _fetchProfileData();
   }
 
-  // Fetch existing profile data
-  void _fetchProfileData() async {
+  Future<void> _fetchProfileData() async {
     try {
       final profileSnapshot = await FirebaseFirestore.instance
           .collection("user_info")
@@ -51,7 +51,7 @@ class _ChangeProfileState extends State<ChangeProfile> {
           height = data?['height'] ?? "";
           goal = data?['goal'] ?? "";
           imageUrl = data?['imageUrl'] ??
-              "https://via.placeholder.com/150"; // Default placeholder image
+              "https://via.placeholder.com/150"; // Placeholder if no image
         });
       }
     } catch (e) {
@@ -59,25 +59,26 @@ class _ChangeProfileState extends State<ChangeProfile> {
     }
   }
 
-  // Pick image from gallery
   Future<void> _pickImage() async {
-    final pickedFile =
-    await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      setState(() {
-        image = File(pickedFile.path);
-      });
+      final file = File(pickedFile.path);
+      if (await file.exists()) {
+        setState(() {
+          image = file;
+        });
+      } else {
+        print("File does not exist: ${pickedFile.path}");
+      }
     }
   }
 
-  // Save updated profile data
   Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save(); // Save form data
+      _formKey.currentState!.save();
 
       String uploadedImageUrl = imageUrl;
 
-      // Upload image to Firebase Storage if a new image is selected
       if (image != null) {
         try {
           final storageRef = FirebaseStorage.instance
@@ -93,7 +94,6 @@ class _ChangeProfileState extends State<ChangeProfile> {
         }
       }
 
-      // Save data to Firestore
       try {
         final profileRef = FirebaseFirestore.instance
             .collection("user_info")
@@ -114,7 +114,6 @@ class _ChangeProfileState extends State<ChangeProfile> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Profile updated successfully!")),
         );
-        Navigator.pop(context); // Go back after saving
       } catch (e) {
         print("Error saving profile: $e");
         ScaffoldMessenger.of(context).showSnackBar(
@@ -128,10 +127,10 @@ class _ChangeProfileState extends State<ChangeProfile> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Change Profile",style: TextStyle(color: Colors.white),),
+        title: const Text("Change Profile", style: TextStyle(color: Colors.white)),
         backgroundColor: Color(0xFFB0E0E6),
         iconTheme: const IconThemeData(
-          color: Colors.white, // Changes the back arrow color to white
+          color: Colors.white,
         ),
       ),
       body: SingleChildScrollView(
@@ -146,73 +145,40 @@ class _ChangeProfileState extends State<ChangeProfile> {
                   onTap: _pickImage,
                   child: CircleAvatar(
                     radius: 50,
+                    backgroundColor: Colors.grey[300],
                     backgroundImage: image != null
                         ? FileImage(image!)
-                        : NetworkImage(imageUrl) as ImageProvider,
-                    child: image == null
-                        ? const Icon(Icons.camera_alt, size: 40)
+                        : (imageUrl.isNotEmpty
+                        ? NetworkImage(imageUrl) as ImageProvider
+                        : const AssetImage('assets/images/default_avatar.png')),
+                    child: image == null && imageUrl.isEmpty
+                        ? const Icon(Icons.camera_alt, size: 40, color: Colors.white)
                         : null,
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  initialValue: name,
-                  decoration: const InputDecoration(labelText: "Name"),
-                  validator: (value) =>
-                  value!.isEmpty ? "Name cannot be empty" : null,
-                  onSaved: (value) => name = value!,
-                ),
+                _buildEditableField("Name", name, (value) => name = value),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: sex.isNotEmpty ? sex : null,
-                  decoration: const InputDecoration(labelText: "Sex"),
-                  items: const [
-                    DropdownMenuItem(value: "Male", child: Text("Male")),
-                    DropdownMenuItem(value: "Female", child: Text("Female")),
-                    DropdownMenuItem(
-                        value: "Prefer not to say",
-                        child: Text("Prefer not to say")),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      sex = value!;
-                    });
-                  },
-                  validator: (value) =>
-                  value == null ? "Please select a gender" : null,
-                ),
-                TextFormField(
-                  initialValue: weight,
-                  decoration: const InputDecoration(labelText: "Weight (kg)"),
-                  keyboardType: TextInputType.number,
-                  onSaved: (value) => weight = value!,
-                ),
-                TextFormField(
-                  initialValue: height,
-                  decoration: const InputDecoration(labelText: "Height (cm)"),
-                  keyboardType: TextInputType.number,
-                  onSaved: (value) => height = value!,
-                ),
-                TextFormField(
-                  initialValue: goal,
-                  decoration: const InputDecoration(labelText: "Goal/Notes"),
-                  maxLines: 2,
-                  onSaved: (value) => goal = value!,
-                ),
+                _buildEditableField("Sex", sex, (value) => sex = value),
+                const SizedBox(height: 16),
+                _buildEditableField("Weight (kg)", weight, (value) => weight = value),
+                const SizedBox(height: 16),
+                _buildEditableField("Height (cm)", height, (value) => height = value),
+                const SizedBox(height: 16),
+                _buildEditableField("Goal/Notes", goal, (value) => goal = value),
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: _saveProfile,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFFDE7B2), // Soft yellow color
-                    foregroundColor: Colors.black,     // Text color (for contrast)
+                    backgroundColor: Color(0xFFFDE7B2),
+                    foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12), // Optional: Rounded corners
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text("Save", style: TextStyle(color: Colors.grey),),
+                  child: const Text("Save", style: TextStyle(color: Colors.grey)),
                 ),
                 const SizedBox(height: 20),
-                // Add Lottie Animation
                 Lottie.asset(
                   'assets/animations/change_profile.json',
                   width: 300,
@@ -223,6 +189,27 @@ class _ChangeProfileState extends State<ChangeProfile> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildEditableField(String label, String initialValue, Function(String) onSave) {
+    final controller = TextEditingController(text: initialValue);
+    return Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            controller: controller,
+            decoration: InputDecoration(labelText: label),
+            onChanged: onSave,
+          ),
+        ),
+        IconButton(
+          icon: Icon(Icons.edit, color: Colors.blue),
+          onPressed: () {
+            onSave(controller.text);
+          },
+        ),
+      ],
     );
   }
 }

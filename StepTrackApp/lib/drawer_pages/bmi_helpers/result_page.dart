@@ -17,7 +17,7 @@ class ResultsPage extends StatelessWidget {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor:  Color(0xFF111328),
-        title: Text('B.M.I Calculator',style: TextStyle(color: Colors.white),),
+        title: Text('B.M.I Results',style: TextStyle(color: Colors.white),),
         centerTitle: true,
       ),
       body: Column(

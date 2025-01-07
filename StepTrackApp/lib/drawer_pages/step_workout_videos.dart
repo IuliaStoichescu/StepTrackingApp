@@ -10,16 +10,21 @@ enum WorkoutDifficulty { easy, medium, hard }
 final easyVideos = [
   'https://youtu.be/-oISWIJjKws?si=uksFCAXrnV-ynXm1',
   'https://youtu.be/mCeFdXQtj5E?si=6mctTn2DzRnbtOCc',
+  'https://youtu.be/1aFNVtPi2m4?si=YAhSbYs1cN7HVZ4H',
+  'https://youtu.be/tx1V_jtT6bY?si=rTz8JoiTgMUE_lmS'
 ];
 
 final mediumVideos = [
   'https://youtu.be/htNphBVfl4w?si=vcEbdIr3k_8xCcf7',
   'https://youtu.be/Gykh4bBT_4s?si=EFLObPFuwh7gpAc1',
   'https://youtu.be/Nc_NZ3PXhE8?si=aqvGMUeC-Z1sFvAH',
+  'https://youtu.be/DQbvQy9bH9E?si=GCccQd1JGhy-Ryxs'
 ];
 
 final hardVideos = [
   'https://youtu.be/cAAB2yjlwhI?si=Rdvl55Tq-MFo9G_7',
+  'https://youtu.be/aTUfLIPTG4g?si=rer1h89WmgY9A5Lw',
+  'https://youtu.be/2vlywP0K5IE?si=d2yfcuhHLEFGlPfJ',
 ];
 
 class StepWorkoutVideos extends StatefulWidget {
@@ -136,7 +141,17 @@ class _StepWorkoutVideosState extends State<StepWorkoutVideos> {
           itemCount: videoList.length,
           itemBuilder: (context, index) {
             final videoID = YoutubePlayer.convertUrlToId(videoList[index]);
-
+            if (videoID == null) {
+              // Handle invalid URLs gracefully
+              return Container(
+                margin: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                child: Text(
+                  "Invalid video URL",
+                  style: TextStyle(color: Colors.red),
+                  textAlign: TextAlign.center,
+                ),
+              );
+            }
             return InkWell(
               onTap: () {
                 Navigator.of(context).push(

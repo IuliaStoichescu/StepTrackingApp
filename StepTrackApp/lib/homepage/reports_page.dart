@@ -1,82 +1,59 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import 'for_reports_page/chart_widget.dart';
+
+User? get currentUser => FirebaseAuth.instance.currentUser;
+
 class ReportsPage extends StatelessWidget {
-  const ReportsPage({super.key});
+  ReportsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Report"),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const Text(
-              "Weekly Statistics",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceEvenly,
-                  barGroups: [
-                    _buildBarGroup(0, 5),
-                    _buildBarGroup(1, 7),
-                    _buildBarGroup(2, 4),
-                    _buildBarGroup(3, 8),
-                    _buildBarGroup(4, 6),
-                  ],
-                  borderData: FlBorderData(show: false),
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          switch (value.toInt()) {
-                            case 0:
-                              return const Text('Mon');
-                            case 1:
-                              return const Text('Tue');
-                            case 2:
-                              return const Text('Wed');
-                            case 3:
-                              return const Text('Thu');
-                            case 4:
-                              return const Text('Fri');
-                            default:
-                              return const Text('');
-                          }
-                        },
-                      ),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                  ),
-                ),
+    final userId = currentUser?.uid ?? "";
+
+    return DefaultTabController(
+      length: 4, // Number of tabs
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            "Weekly Reports - Track Your Progress",
+            style: TextStyle(color: Colors.white),
+          ),
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.blue,
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 20.0), // Adjust padding here
+              child: Icon(
+                size: 30,
+                Icons.trending_up, // Replace with your preferred icon
+                color: Colors.white, // White color for the icon
               ),
             ),
           ],
+          bottom: TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.directions_walk), text: "Steps"),
+              Tab(icon: Icon(Icons.timeline), text: "Distance"),
+              Tab(icon: Icon(Icons.local_fire_department), text: "Calories"),
+              Tab(icon: Icon(Icons.timer), text: "Time"),
+            ],
+            indicatorColor: Colors.green[200], // Highlight the selected tab
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            ChartWidget(title: "Steps Per Week", dataKey: "steps", userId: userId),
+            ChartWidget(title: "Distance Per Week", dataKey: "distance", userId: userId),
+            ChartWidget(title: "Calories Burned Per Week", dataKey: "calories", userId: userId),
+            ChartWidget(title: "Time Spent Walking Per Week", dataKey: "time", userId: userId),
+          ],
         ),
       ),
-    );
-  }
-
-  BarChartGroupData _buildBarGroup(int x, double y) {
-    return BarChartGroupData(
-      x: x,
-      barRods: [
-        BarChartRodData(
-          toY: y,
-          width: 16,
-          color: Colors.purple,
-        ),
-      ],
     );
   }
 }
